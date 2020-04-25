@@ -3,16 +3,14 @@
 - CIS-627-161
 - 4/25/2020
 
-# About: 
+# Problem Statement: 
 
-Fantasy stock was a stock trading competition conducted by our professor in which we utilized data mining and machine learning algorithms. 
-Teams of 2 were created to compete against each other, each individual received $100,000 big data dollars (BDD) to start with the trading competition calling projectrex; a mediator to execute commands such as buying, selling, viewing profile and viewing the transaction log.
-The API utilized to obtain the real time and historical stock data was Alpha Vantage. Moreover, it was a part of the requirement to create a virtual machine hosted on AWS which would run the trading scripts so that the local machine isn't bound to stay on for the duration when the stock market is open.
+Which genetic markers can help in comprehending not just autism as a whole but also of the developmental stage, particular biology or behavioral needs of each person on the autism spectrum?
 
 # Requirement:
-The script is written in R, the required packages are as follows: `devtools` `RSQLS` `tidyverse` `h2o` `kernlab` `randomForest` `caret` `nnet` `rpart` `e1071` .
+The script is written in R, the required packages are as follows: `devtools` `RSQLS` `tidyverse` `h2o` `kernlab` `randomForest` `caret` `nnet` `rpart` `e1071` `caTools` `readxl` .
 
-# AWS Instance for running the Rscripts.
+# Tidying the data:
 Remote desktop connection app which comes pre installed in a windows operating system was used to connect to the AWS instance.
 - Zimin AWS instance: ec2-34-207-81-218.compute-1.amazonaws.com
 - Syed AWS instance: ec2-34-203-244-43.compute-1.amazonaws.com  
