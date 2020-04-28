@@ -8,7 +8,7 @@
 Which genetic markers can help in comprehending not just autism as a whole but also of the developmental stage, particular biology or behavioral needs of each person on the autism spectrum?
 
 # Requirement:
-The script is written in R, the required packages are as follows: `devtools` `RSQLS` `tidyverse` `h2o` `kernlab` `randomForest` `caret` `nnet` `rpart` `e1071` `caTools` `readxl` .
+The script is written in R, the required packages are as follows: `devtools` `RSQLS` `tidyverse` `h2o` `kernlab` `randomForest` `caret` `nnet` `rpart` `e1071` `caTools` `readxl` `ggthemes` .
 
 # Tidying the data:
 Remote desktop connection app which comes pre installed in a windows operating system was used to connect to the AWS instance.
