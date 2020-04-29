@@ -33,6 +33,9 @@ Stock Trend for the EMA
 
 <a href="https://ibb.co/3zFgwZ6"><img src="https://i.ibb.co/2NMGw4V/single-iteration.png" alt="single-iteration" border="0"></a>
 
+<a href="https://ibb.co/K6xSWrS"><img src="https://i.ibb.co/D4fTQRT/acc-barplot.png" alt="acc-barplot" border="0"></a>
+
+
 ## Time Series Analysis
 The second model utilizes time series data to forecast the future price for the next 15 minutes if the actual price is less or above the predicted, it executes the buy or sell function.
 
