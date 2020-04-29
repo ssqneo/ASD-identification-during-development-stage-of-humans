@@ -15,6 +15,7 @@ This analysis looks to predict the probability of autism by identifying the most
 
 ## Execution:
 <a href="https://ibb.co/4JTgpK6"><img src="https://i.ibb.co/mSqF4bL/treemap2.png" alt="treemap2" border="0"></a><br /><a target='_blank' href='https://movieplotholes.com/training-day-plot-holes'>training day scene</a><br />
+
 The above image displays the top 20 impacted genes by the neuronal induction which were obtained by looking at the difference of the two raw datasets which can be found in the data folder of this repository, next a scrapper was used to identify the gene symbols with their corresponding names, synonyms and description. An exploratory data analysis was performed to prepare the data and gain a better understaind before delving into the model building.
 
 # Result:
