@@ -31,7 +31,8 @@ The model uses a 30 day exponential moving average and a 100 day exponential mov
 Stock Trend for the EMA 
 
 
-<a href="https://ibb.co/3zFgwZ6"><img src="https://i.ibb.co/2NMGw4V/single-iteration.png" alt="single-iteration" border="0"></a>
+<a href="https://ibb.co/wQzy5gD"><img src="https://i.ibb.co/s1Vj8RL/single-iteration.png" alt="single-iteration" border="0"></a>
+
 
 <a href="https://ibb.co/K6xSWrS"><img src="https://i.ibb.co/D4fTQRT/acc-barplot.png" alt="acc-barplot" border="0"></a>
 
