@@ -1,0 +1,1292 @@
+---
+title: "Capstone Project - Syed"
+author: "Syed Shaheryar Qadir - CIS-627-161"
+course: "CIS-627-161"
+date: "4/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### "Predicting autism using most impactful gene expressions in the autism spectrum." ### 
+
+# To read the raw dataset which has been saved in excel format without disturbing the order of the columns.
+
+```{r}
+# X35 refers to the dataset containing gene expressions of patients who underwent neuronal induction at day 35 after exposure.
+# The wordings enclosed in round brackets with 'library' or 'require' such as the following are R packages, in case of an error that a certain package is not found, that package needs to be installed using install.packages(""), an example is shown in line 21.
+
+
+#install.packages("ggplot2")
+
+library(readxl)
+require(tidyverse)
+require(rvest)
+require(data.table)
+require(ggthemes)
+
+# X35 is the name assigned to the dataset, it is mandatory that the file being imported is in excel format.
+# To specify the path for data to be imported simply right click on the excel file and right click properties, copy the location. Then change the 
+# backslash "\" to forwardslash "/", lastly add the file name with the extension.xlsx as can be seen in line 33. 
+
+X35 <-
+  read_excel("C:/Users/Syed/Desktop/Capstone/Genome/dataset/35.xlsx")
+head(X35)
+
+# X135 refers to the dataset containing gene expressions of patients who underwent neuronal induction at day 135 after exposure.
+
+# Same steps for X135, make sure the file is in excel format and then specify the path.
+
+X135 <-
+  read_excel("C:/Users/Syed/Desktop/Capstone/Genome/dataset/135.xlsx")
+head(X135)
+
+```
+
+# Rename the columns from patient ID to patients with and without ASD
+
+```{r}
+
+# This chunk of code renames all the columns starting from 2 to 12 with ASD1 to ASD6 and WASD 1 to WASD 5. The original file downloaded from "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE124308" has the patients in such order. Hence, the starting six patients have ASD.
+
+# This step is repeated for both datasets  (X35 and X135) as can be seen from line 55 and 70. This code is order sensitive.
+
+colnames(X35)[2:12] <-
+  c(
+    "ASD 1",
+    "ASD 2",
+    "ASD 3",
+    "ASD 4",
+    "ASD 5",
+    "ASD 6",
+    "WASD 1",
+    "WASD 2",
+    "WASD 3",
+    "WASD 4",
+    "WASD 5"
+  )
+
+colnames(X135)[2:12] <-
+  c(
+    "ASD 1",
+    "ASD 2",
+    "ASD 3",
+    "ASD 4",
+    "ASD 5",
+    "ASD 6",
+    "WASD 1",
+    "WASD 2",
+    "WASD 3",
+    "WASD 4",
+    "WASD 5"
+  )
+
+```
+
+# Obtain a dataset which subtracts the gene expression of the corresponding patients from both datasets.
+
+```{r}
+# This chunk creates a new dataset with the first column being same as before (Symbol), but all the gene expressions reported here are a difference obtained after subtracting X35 from X135.
+
+# delta refers to the dataset obtained after subtracting both raw datasets to see the difference of growth or reduction in gene expressions
+
+delta <- data.frame(
+  Symbol = X35$Symbol,
+  ASD1 = X135$`ASD 1` - X35$`ASD 1`,
+  ASD2 = X135$`ASD 2` - X35$`ASD 2`,
+  ASD3 = X135$`ASD 3` - X35$`ASD 3`,
+  ASD4 = X135$`ASD 4` - X35$`ASD 4`,
+  ASD5 = X135$`ASD 5` - X35$`ASD 5`,
+  ASD6 = X135$`ASD 6` - X35$`ASD 6`,
+  WASD1 = X135$`WASD 1` - X35$`WASD 1`,
+  WASD2 = X135$`WASD 2` - X35$`WASD 2`,
+  WASD3 = X135$`WASD 3` - X35$`WASD 3`,
+  WASD4 = X135$`WASD 4` - X35$`WASD 4`,
+  WASD5 = X135$`WASD 5` - X35$`WASD 5`
+)
+
+```
+
+# The delta dataset looks at the difference of X35 and X135, and then proceeds to add the average column whereas the Top_20 datasets arrange based on average for ASD and WASD for X35 and X135.    
+
+```{r}
+# This chunk adds a column in the delta dataset with the average gene expression arranged in descending order, once arranged, the top 20 rows are saved as delta_top_20 as can be seen in line 122.
+
+# To find the average of gene expression found in each patient
+
+options(scipen = 999)
+delta$avg <- rowMeans(delta[,-1])
+delta <- delta %>% arrange(-avg)
+
+# d3 refers to the top 20 rows selected on the base of average
+
+delta_top_20 <- delta[1:20, ]
+head(delta_top_20)
+
+```
+
+# To get average of the gene expressions for day 35
+# AVG_ASD represents the average for the patients with ASD
+# AVG_WASD represents the average for the patients without ASD
+
+```{r}
+# This chunk subsets the day 35 (X35) dataset into patients with ASD and without, arranges in descending order and saves the top 20 as a new dataset. In order to be able to distinguish a new columns "ASD" was added which assigned value of "0" and "1" for patients without ASD and with ASD respectively.
+
+X35$AVG_ASD <- rowMeans(X35[, 2:7])
+X35$AVG_WASD <- rowMeans(X35[, 8:12])
+
+Top_20_ASD_35 <- head(X35[, c(1:7, 13)] %>% arrange(-AVG_ASD), 20)
+Top_20_ASD_35$ASD <- 1
+
+Top_20_WASD_35 <- head(X35[, c(1, 8:12, 14)] %>% arrange(-AVG_WASD), 20)
+Top_20_WASD_35$ASD <- 0
+
+```
+
+
+# To get average of the gene expressions for day 135
+
+```{r}
+# This chunk subsets the day 135 (X135) dataset into patients with ASD and without, arranges in descending order and saves the top 20 as a new dataset. In order to be able to distinguish a new columns "ASD" was added which assigned value of "0" and "1" for patients without ASD and with ASD respectively.
+
+X135$AVG_ASD <- rowMeans(X135[, 2:7])
+X135$AVG_WASD <- rowMeans(X135[, 8:12])
+
+Top_20_ASD_135 <- head(X135[, c(1:7, 13)] %>% arrange(-AVG_ASD), 20)
+Top_20_ASD_135$ASD <- 1
+
+Top_20_WASD_135 <- head(X135[, c(1, 8:12, 14)] %>% arrange(-AVG_WASD), 20)
+Top_20_WASD_135$ASD <- 0
+
+```
+
+# Identifying the top 20 impacted genes by comparing just ASD and WASD of 35 against ASD and WASD of 135.
+
+```{r}
+#This chunk stores the difference of gene expression associated only with ASD patients and vice versa while arranging them in descending order.
+
+Diff_AVG_ASD = data.frame(Symbols = Top_20_ASD_135$Symbol,
+                       `Delta Avg` = Top_20_ASD_135$AVG_ASD - Top_20_ASD_35$AVG_ASD)
+Diff_AVG_ASD <- D_AVG_ASD %>% arrange(-Delta.Avg)
+
+
+Diff_AVG_WASD = data.frame(Symbols = Top_20_WASD_135$Symbol,
+                        `Delta Avg` = Top_20_WASD_135$AVG_WASD - Top_20_WASD_35$AVG_WASD)
+Diff_AVG_WASD <- D_AVG_WASD %>% arrange(-Delta.Avg)
+
+```
+
+
+
+# Scrapper for labeling genes
+```{r}
+# This chunk assigns the "Name", "Description", "Synonyms" and "Location" to the 'delta_top_20', 'Diff_AVG_ASD' and 'Diff_AVG_WASD' datasets by scrapping information off of "https://grch37.ensembl.org/Homo_sapiens/Gene/Summary?g=ENSG00000139618;r=13:32889611-32973805".
+
+delta_top_20$Name <- ""
+delta_top_20$Description <- ""
+delta_top_20$Synonyms <- ""
+delta_top_20$Location <- ""
+for (i in 1:nrow(delta_top_20)) {
+  url <-
+    paste0("https://grch37.ensembl.org/Homo_sapiens/Gene/Summary?g=",
+           delta_top_20$Symbol[i])
+  name <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[1]/h1/text()') %>% html_text() %>% str_replace("Gene: ", "") %>% str_replace(" ", "")
+  desc <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div[2]/p/text()[1]') %>% html_text()
+  syn <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[2]/div[2]/p') %>% html_text()
+  loc <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[3]/div[2]/p[1]') %>% html_text()
+  delta_top_20$Name[i] <- name
+  delta_top_20$Description[i] <- desc
+  delta_top_20$Synonyms[i] <- syn
+  delta_top_20$Location[i] <- loc
+}
+
+
+Diff_AVG_ASD$Name <- ""
+Diff_AVG_ASD$Description <- ""
+Diff_AVG_ASD$Synonyms <- ""
+Diff_AVG_ASD$Location <- ""
+for (i in 1:nrow(Diff_AVG_ASD)) {
+  url <-
+    paste0("https://grch37.ensembl.org/Homo_sapiens/Gene/Summary?g=",
+           Diff_AVG_ASD$Symbol[i])
+  name <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[1]/h1/text()') %>% html_text() %>% str_replace("Gene: ", "") %>% str_replace(" ", "")
+  desc <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div[2]/p/text()[1]') %>% html_text()
+  syn <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[2]/div[2]/p') %>% html_text()
+  loc <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[3]/div[2]/p[1]') %>% html_text()
+  Diff_AVG_ASD$Name[i] <- name
+  Diff_AVG_ASD$Description[i] <- desc
+  Diff_AVG_ASD$Synonyms[i] <- syn
+  Diff_AVG_ASD$Location[i] <- loc
+}
+
+
+Diff_AVG_WASD$Name <- ""
+Diff_AVG_WASD$Description <- ""
+Diff_AVG_WASD$Synonyms <- ""
+Diff_AVG_WASD$Location <- ""
+for (i in 1:nrow(Diff_AVG_WASD)) {
+  url <-
+    paste0("https://grch37.ensembl.org/Homo_sapiens/Gene/Summary?g=",
+           Diff_AVG_WASD$Symbol[i])
+  name <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[1]/h1/text()') %>% html_text() %>% str_replace("Gene: ", "") %>% str_replace(" ", "")
+  desc <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div[2]/p/text()[1]') %>% html_text()
+  syn <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[2]/div[2]/p') %>% html_text()
+  loc <-
+    url %>% read_html() %>%  html_nodes(xpath = '/html/body/div[1]/div/div[2]/div[2]/div[1]/div[2]/div/div[1]/div[3]/div[2]/p[1]') %>% html_text()
+  Diff_AVG_WASD$Name[i] <- name
+  Diff_AVG_WASD$Description[i] <- desc
+  Diff_AVG_WASD$Synonyms[i] <- syn
+  Diff_AVG_WASD$Location[i] <- loc
+}
+
+
+```
+
+# Exploratory Data Analysis
+
+```{r}
+# This chunk creates a treemap with the top 20 identified genes stored in 'delta_top_20'.
+
+# To create a treemap to display hierarchical  data using nested rectangles.
+
+require(treemap)
+treemap(
+  delta_top_20,
+  index = c("Synonyms"),
+  type = "value",
+  vSize = "avg",
+  vColor = "avg",
+  palette = "RdBu",
+  title = "Gene Synonyms and Average Gene Expression",
+  title.legend = "Average Gene Expression Change"
+)
+
+
+treemap(
+  delta_top_20,
+  index = c("Name"),
+  type = "index",
+  vSize = "avg",
+  vColor = "avg",
+  palette = "RdBu",
+  title = "Gene Names and Average Gene Expression"
+)
+
+```
+
+```{r}
+# This chunk creates barplots for top 20 average gene expression, top 20 ASD genes and top 20 WASD genes from delta_top_20, Diff_AVG_ASD, Diff_AVG_WASD respectively.
+
+# To look at the dominant genes using a bar plot
+
+ggplot(delta_top_20, aes(x = Name, y = avg)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Gene Expression Difference" ,  x = "Gene",  y = "Gene Expression") +
+  theme_few() + scale_fill_gdocs() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+ggplot(Diff_AVG_ASD, aes(x = Name, y = `Delta.Avg`)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Gene Expression Difference with ASD" ,  x = "Gene",  y = "Gene Expression") +
+  theme_few() + scale_fill_gdocs() +theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+ggplot(Diff_AVG_WASD, aes(x = Name, y = Delta.Avg)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Gene Expression Difference without ASD" ,  x = "Gene",  y = "Gene Expression") +
+  theme_few() + scale_fill_gdocs() +theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+```
+
+# Tidying the data to transpose (rearrange rows and columns) it in order to get a visualization with patients on the x axis
+```{r}
+
+transpose_delta_top_20 <- data.frame(t(delta_top_20[-1]))
+colnames(transpose_delta_top_20) <- delta_top_20[,1]
+
+
+transpose_delta_top_20$Patient_ID <- c(1:16)
+transpose_delta_top_20 <- t.delta20[1:11, ]
+transpose_delta_top_20$Patient_ID <- as.factor(transpose_delta_top_20$Patient_ID)
+
+transpose_delta_top_20$ASD <- c(1,1,1,1,1,1,0,0,0,0,0)
+
+
+```
+
+# Visualing the top impacted gene in comparision of ASD vs non ASD patient
+```{r}
+# This chunk generates a bar plot with the first most impacted gene from the delta_top_20.
+
+ggplot(
+  data = transpose_delta_top_20,
+  mapping = aes(y = ENSG00000152583.8, x = Patient_ID, fill = "red")
+) +
+  
+  geom_bar(stat = "identity",
+           position = "dodge",
+           show.legend = F) +
+  facet_wrap( ~ ASD) +
+  labs(
+    title = "SPARCL1" ,
+    y = "Gene Expression",
+    x = "Patient ID (ASD = 1-6 | WASD = 8-11)",
+    subtitle = "SPARC-like 1 (hevin) [Source:HGNC]"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+theme_few() + scale_fill_gdocs()
+
+```
+
+# Taking the top 10 highlighted genes to gain initial overview of the data via SPLOM (scatter plot of matrices)
+
+```{r}
+# To get a look at the correlation of the genes against ASD (1 or 0), here I further reduce from top 20 to top 10 genes.
+
+library(psych)
+transpose_delta_top_10_pairs <- subset(transpose_delta_top_20[, c(1:10, 22)])
+pairs.panels(transpose_delta_top_10_pairs)
+```
+
+
+# Model Building
+
+```{r}
+# This chunk creates a dataset which uses the symbols identified in 'delta_top_20' and takes the corresponding gene expression of X35 and X135 for patient1 to patient 11 - creating 11 datasets with the same symbol but different gene expressions varrying by patients and as can be seen in line 474 all of them are stacked in one big dataframe.
+
+# To create a dataset which stacks the patients and their corresponding gene expressions for each gene and whether they had ASD or not.
+
+#Patient 1
+ASD35P1 <- merge(delta_top_20, X35[, c(1, 2)], by = "Symbol")
+ASDP1 <- ASD35P1[, c(1, 14,18)]
+ASDP1$Patient <- "ASD1"
+ASDP1$Autism <- 1
+ASDP1 <- ASDP1 %>% rename (X35 = `ASD 1`)
+ASDP1 <- merge(ASDP1, X135[, c(1, 2)], by = "Symbol")
+ASDP1 <- ASDP1 %>% rename (X135 = `ASD 1`)
+
+#Patient 2
+ASD35P2 <- merge(delta_top_20, X35[, c(1, 3)], by = "Symbol")
+ASDP2 <- ASD35P2[, c(1, 14,18)]
+ASDP2$Patient <- "ASD2"
+ASDP2$Autism <- 1
+ASDP2 <- ASDP2 %>% rename (X35 = `ASD 2`)
+ASDP2 <- merge(ASDP2, X135[, c(1, 3)], by = "Symbol")
+ASDP2 <- ASDP2 %>% rename (X135 = `ASD 2`)
+
+#Patient 3
+ASD35P3 <- merge(delta_top_20, X35[, c(1, 4)], by = "Symbol")
+ASDP3 <- ASD35P3[, c(1, 14,18)]
+ASDP3$Patient <- "ASD3"
+ASDP3$Autism <- 1
+ASDP3 <- ASDP3 %>% rename (X35 = `ASD 3`)
+ASDP3 <- merge(ASDP3, X135[, c(1, 4)], by = "Symbol")
+ASDP3 <- ASDP3 %>% rename (X135 = `ASD 3`)
+
+
+#Patient 4
+ASD35P4 <- merge(delta20, X35[, c(1, 5)], by = "Symbol")
+ASDP4 <- ASD35P4[, c(1, 14,18)]
+ASDP4$Patient <- "ASD4"
+ASDP4$Autism <- 1
+ASDP4 <- ASDP4 %>% rename (X35 = `ASD 4`)
+ASDP4 <- merge(ASDP4, X135[, c(1, 5)], by = "Symbol")
+ASDP4 <- ASDP4 %>% rename (X135 = `ASD 4`)
+
+#Patient 5
+ASD35P5 <- merge(delta20, X35[, c(1, 6)], by = "Symbol")
+ASDP5 <- ASD35P5[, c(1, 14,18)]
+ASDP5$Patient <- "ASD5"
+ASDP5$Autism <- 1
+ASDP5 <- ASDP5 %>% rename (X35 = `ASD 5`)
+ASDP5 <- merge(ASDP5, X135[, c(1, 6)], by = "Symbol")
+ASDP5 <- ASDP5 %>% rename (X135 = `ASD 5`)
+
+#Patient 6
+ASD35P6 <- merge(delta20, X35[, c(1, 7)], by = "Symbol")
+ASDP6 <- ASD35P6[, c(1, 14,18)]
+ASDP6$Patient <- "ASD6"
+ASDP6$Autism <- 1
+ASDP6 <- ASDP6 %>% rename (X35 = `ASD 6`)
+ASDP6 <- merge(ASDP6, X135[, c(1, 7)], by = "Symbol")
+ASDP6 <- ASDP6 %>% rename (X135 = `ASD 6`)
+
+
+#Patient 7
+ASD35P7 <- merge(delta20, X35[, c(1, 8)], by = "Symbol")
+ASDP7 <- ASD35P7[, c(1, 14,18)]
+ASDP7$Patient <- "WASD1"
+ASDP7$Autism <- 0
+ASDP7 <- ASDP7 %>% rename (X35 = `WASD 1`)
+ASDP7 <- merge(ASDP7, X135[, c(1, 8)], by = "Symbol")
+ASDP7 <- ASDP7 %>% rename (X135 = `WASD 1`)
+
+
+#Patient 8
+ASD35P8 <- merge(delta20, X35[, c(1, 9)], by = "Symbol")
+ASDP8 <- ASD35P8[, c(1, 14,18)]
+ASDP8$Patient <- "WASD2"
+ASDP8$Autism <- 0
+ASDP8 <- ASDP8 %>% rename (X35 = `WASD 2`)
+ASDP8 <- merge(ASDP8, X135[, c(1, 9)], by = "Symbol")
+ASDP8 <- ASDP8 %>% rename (X135 = `WASD 2`)
+
+
+#Patient 9
+ASD35P9 <- merge(delta20, X35[, c(1, 10)], by = "Symbol")
+ASDP9 <- ASD35P9[, c(1, 14,18)]
+ASDP9$Patient <- "WASD3"
+ASDP9$Autism <- 0
+ASDP9 <- ASDP9 %>% rename (X35 = `WASD 3`)
+ASDP9 <- merge(ASDP9, X135[, c(1, 10)], by = "Symbol")
+ASDP9 <- ASDP9 %>% rename (X135 = `WASD 3`)
+
+
+
+#Patient 10
+ASD35P10 <- merge(delta20, X35[, c(1, 11)], by = "Symbol")
+ASDP10 <- ASD35P10[, c(1, 14,18)]
+ASDP10$Patient <- "WASD4"
+ASDP10$Autism <- 0
+ASDP10 <- ASDP10 %>% rename (X35 = `WASD 4`)
+ASDP10 <- merge(ASDP10, X135[, c(1, 11)], by = "Symbol")
+ASDP10 <- ASDP10 %>% rename (X135 = `WASD 4`)
+
+
+
+#Patient 11
+ASD35P11 <- merge(delta20, X35[, c(1, 12)], by = "Symbol")
+ASDP11 <- ASD35P11[, c(1, 14,18)]
+ASDP11$Patient <- "WASD5"
+ASDP11$Autism <- 0
+ASDP11 <- ASDP11 %>% rename (X35 = `WASD 5`)
+ASDP11 <- merge(ASDP11, X135[, c(1, 12)], by = "Symbol")
+ASDP11 <- ASDP11 %>% rename (X135 = `WASD 5`)
+
+
+Genes_merged = rbind(ASDP1,
+                 ASDP2,
+                 ASDP3,
+                 ASDP4,
+                 ASDP5,
+                 ASDP6,
+                 ASDP7,
+                 ASDP8,
+                 ASDP9,
+                 ASDP10,
+                 ASDP11)
+
+
+```
+
+# To check the correlation
+```{r}
+# This chunk checks the correlation between X35 and X135 and plots the linear regression line between them.
+
+cor(Genes_merged$X135, Genes_merged$X35)
+
+ggplot(df_merge, aes(X35, X135)) +
+  geom_point() +
+  ylim(0,400000)+
+  xlim(0,200000)+
+  geom_smooth(method = "lm", se = F)+
+theme_few() + scale_fill_gdocs() +
+  labs(
+    title = "Regression analysis line between gene 35 and 135",
+    y = "Day 135 Gene Expression",
+    x = "Day 35 Gene Expression") +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1))
+  
+
+
+```
+
+# Initiate data split to be used for the models ahead so the predictions can be obtained to perform a tukey and anova on them.
+```{r}
+# This chunk splits the 'Genes_merged' dataset which is our main dataset for modeling to be used for all the models ahead.
+require(caTools)
+
+Genes_merged$Autism <- as.factor(Genes_merged$Autism)
+
+# set.seed is a means of randomizing the data but setting it to a specific number can help achieve the same randomized training and testing set.
+# split ratio = 0.75 here alots 75% to the training set whereas 25% to the testing set. 
+# All the models below will be trained using 75% of the data and will generate their predictions based on their learning. Then we can get the accuracy by matching it with the testing set, to see how accurate our model is.
+
+set.seed(123)
+sample = sample.split(Genes_merged$Autism, SplitRatio = 0.75)
+train = subset(Genes_merged, sample == T)
+test = subset(Genes_merged, sample == F)
+
+```
+
+# First Model: NaiveBayes
+
+```{r}
+# All the models follow the same dependent variable and independent variable, just the syntax changes to fit that specific models input.
+# Dependent variable = "Autism"
+#Independent variable = "X35" and "X135"
+
+require(naivebayes)
+require(e1071)
+Naivemodel <- naiveBayes(Autism ~ X35 + X135, data = train, laplace = 1)
+laplace_prediction1 <- predict(Naivemodel, test, type = "class")
+Naivemodel
+
+#Confusion Matrix
+
+table = table(laplace_prediction1, test$Autism)
+
+
+# Storing prediction as a dataframe
+
+prediction_nb <- data.frame(prediction = laplace_prediction1,
+                            model = "NaiveBayes")
+
+
+# Accuracy
+accuracy_nb = sum(diag(table) / sum(rowSums(table)))
+cat("Accuracy:", accuracy_nb * 100)
+
+# Assign accuracy in a dataframe
+acc_nb = data.frame(Accuracy = accuracy_nb, Model = "NaiveBayes")
+
+
+```
+
+# Second Model: Rpart Model
+
+```{r}
+require(rpart)
+RFmodel <- rpart(Autism ~ X35 + X135 + Symbol, data = train, method = "class")
+RF_prediction1 <- predict(RFmodel, test, type = "class")
+
+#Confusion Matrix
+table = table(RF_prediction1, test$Autism)
+
+# Storing prediction as a dataframe
+
+prediction_rpart <- data.frame(prediction = RF_prediction1,
+                               model = "Rpart")
+
+# Accuracy
+accuracy_rpart = sum(diag(table) / sum(rowSums(table)))
+cat("Accuracy:", accuracy_rpart * 100)
+
+# Assign accuracy in a dataframe
+acc_rpart = data.frame(Accuracy = accuracy_rpart, Model = "Rpart")
+
+# This rpart plot visualized how a decision is made at each node based on the gene expression.
+rpart.plot::rpart.plot(RFmodel)
+```
+
+# Third Model: Random forest
+
+```{r}
+# Using the same set.seed so far.
+set.seed(123)
+require(randomForest)
+forest <- randomForest(Autism ~ X35 + X135, data = train)
+print(forest)
+
+predictionforest <- predict(forest, test, type = "class")
+
+
+table.forest  = table(test$Autism, predictionforest)
+
+
+# Storing prediction as a dataframe
+
+prediction_randomforest <- data.frame(prediction = predictionforest,
+                                      model = "Random Forest")
+
+
+plot(forest)
+# Accuracy
+accuracy_rf = sum(diag(table.forest) / sum(rowSums(table.forest)))
+cat("Accuracy:", accuracy_rf * 100)
+
+# Assign accuracy in a dataframe
+acc_rf = data.frame(Accuracy = accuracy_rf, Model = "Random Forest")
+
+
+```
+
+
+# Fourth Model: Support Vector Machine (SVM)
+
+```{r}
+require(kernlab)
+
+modelSVM <- ksvm(Autism ~ X35 + X135,
+                 data = train,
+                 kernel = "rbfdot")
+
+# look at basic information about the model
+modelSVM
+
+#predict
+
+pred <- predict(modelSVM, test)
+
+
+# Storing prediction as a dataframe
+
+prediction_svm <- data.frame(prediction = pred,
+                             model = "SVM")
+
+
+# Generate confusion matrix
+confusionMatrix <- table(pred, test$Autism,
+                         dnn = c("Prediction", "Actual"))
+
+# Calculate Accuracy
+accuracy_svm <-
+  sum(diag(confusionMatrix) / sum(rowSums(confusionMatrix)))
+# Assign accuracy in a dataframe
+acc_svm = data.frame(Accuracy = accuracy_svm, Model = "SVM")
+cat("Rbfdot Kernel Accuracy:", accuracy_svm * 100)
+
+```
+
+
+# Fifth Model (a): Logistic Regression with h2o
+
+```{r}
+# Here a different machine was used that differs with the base R library, that is why I had to do the split again but with the same split ratio and seed.
+
+# To start the h2o java machine
+library(h2o)
+h2o.init()
+SPLIT_RATIO = 0.75
+set.seed(123)
+loclah2o <- h2o.init()
+
+#Import Data
+
+Genes_merged$Autism <- as.integer(Genes_merged$Autism)
+h2o_Genes_merged <- as.h2o(Genes_merged)
+
+h2oSplit <- h2o.splitFrame(data = h2o_Genes_merged, ratios = SPLIT_RATIO)
+h2otrain <- h2oSplit[[1]]
+h2otest <- h2oSplit[[2]]
+
+#GLM: Build Model
+model_id = "glm"
+glmModel <- h2o.glm(
+  y = "Autism",
+  x = c("X35", "X135"),
+  training_frame = h2otrain,
+  validation_frame = h2otest
+)
+
+# Predict
+pred <- h2o.predict(glmModel, newdata = h2otest)
+
+prediction_glm <- data.frame(prediction = as.vector(pred$predict),
+                             model = "Glm")
+
+table = table(as.vector(pred$predict), as.vector(h2otest$Autism))
+
+#Accuracy
+accuracy_glm = sum(diag(table)/sum(rowSums(table)))
+
+acc_glm_h2o = data.frame(Accuracy = accuracy_glm, Model = "Logistic Regression (h2o)")
+cat("Logistic Regresion Model is:", accuracy_glm)
+
+```
+
+# Fifth Model (b): Logisitic Regression without h2o
+
+```{r}
+
+#GLM: Build Model
+glmModel <- glm(data = train, Autism ~ X35 + X135, family = "binomial")
+predGLM <- predict(glmModel, newdata = test, type = "response")
+predGLMClass <- ifelse(predGLM < 0.5, "0", "1")
+predGLMClass <- as.factor(predGLMClass)
+#Confusion Matrix
+confusionMatrix <- table(predGLMClass, test$Autism)
+# Calculate Accuracy
+accuracy_glm_regular <-
+  sum(diag(confusionMatrix) / sum(diag(rowSums(confusionMatrix))))
+cat("Logistic Regression Accuracy :", accuracy_glm_regular * 100)
+
+
+acc_glm = data.frame(Accuracy = accuracy_glm_regular, Model = "Logisitic Regression")
+
+```
+
+
+# Sixth Model: Neural Network
+
+```{r}
+
+# To start the h2o java machine
+library(h2o)
+h2o.init()
+SPLIT_RATIO = 0.75
+
+loclah2o <- h2o.init()
+
+#Import Data
+Genes_merged$Autism <- as.integer(Genes_merged$Autism)
+h2o_Genes_merged <- as.h2o(Genes_merged[, c("X35", "X135", "Autism")])
+
+
+h2oSplit <- h2o.splitFrame(data = h2o_Genes_merged, ratios = SPLIT_RATIO)
+h2otrain <- h2oSplit[[1]]
+h2otest <- h2oSplit[[2]]
+
+
+
+h2oDL <- h2o.deeplearning(
+  x = colnames(h2otrain),
+  y = c("Autism"),
+  training_frame = h2otrain,
+  hidden = c(16, 16, 16),
+  epochs = 100,
+  nfolds = 3,
+  seed = 12345
+)
+
+h2oDL@model$scoring_history
+
+
+
+pred <- h2o.predict(h2oDL, h2otest)
+
+prediction_nnet <- data.frame(prediction = as.vector(pred$predict),
+                              model = "Nnet")
+
+table = table(as.vector(pred$predict), as.vector(h2otest$Autism))
+
+#Accuracy
+accuracy_dl = sum(diag(table)/sum(rowSums(table)))
+acc_nnet = data.frame(Accuracy = accuracy_dl, Model = "NNET")
+cat("3 layer accuracy:", accuracy_dl*100)
+
+```
+
+# To stack all the accuracies obtained from the model above and present as a bar plot for easy visualization.
+
+```{r}
+# In this chunk all the accuracies obtained through the previous 6 models are merged in a single dataset which identifies each accuracy next to the model that generated it.
+
+accuracy_models_single_iteration <- rbind(
+    acc_nb,
+    acc_rf,
+    acc_svm,
+    acc_nnet,
+    acc_glm_h2o,
+    acc_rpart,
+    acc_glm
+  )
+
+# Visualizing all accuracies as a comparision side by side, all these are for a single iteration
+
+ggplot(accuracy_models_single_iteration, aes(x = Model, y = Accuracy, fill = Model)) +
+  geom_bar(stat = "identity", position = "dodge2") +
+  geom_text(aes(label = round(Accuracy * 100, digits = 2)),
+            size = 3,
+            hjust = 0.5,
+            vjust = -0.5) + labs(title = "Accuracy vs Model", subtitle = "For Single Iteration", x = "Model", y = "Accuracy") + theme_few() + scale_fill_gdocs()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+```
+# In order to reinforce the accuracies all the models were iterated 25 times with a different 'set.seed', this way a different randomization was assured before feeding the data to the model.
+
+# To loop the accuracy for NaiveBayes 25 times using a function.
+
+```{r}
+# A custom function created for iterating through, hence seed and split has to be specified within the function.
+
+accuracyNBloop <- function(repetition) {
+  acc <- data.frame(TRIAL = c(), Accuracy = c(), Model = c())
+  for (i in 1:repetition) {
+    seed <- as.numeric(paste0("123", i + 5))
+    set.seed = seed
+    
+    sample = sample.split(Genes_merged$Autism, SplitRatio = 0.75)
+    train = subset(Genes_merged, sample == T)
+    test = subset(Genes_merged, sample == F)
+    test$Autism <- as.factor(test$Autism)
+    train$Autism <- as.factor(train$Autism)
+    
+    Naivemodel2 <-
+      naiveBayes(Autism ~ X35 + X135, data = train, laplace = 1)
+    laplace_prediction10 <-
+      predict(Naivemodel2, test, type = "class")
+    
+    
+    confusionMatrix <- table(laplace_prediction10,
+                             test$Autism,
+                             dnn = c("Prediction", "Actual"))
+    
+    
+    # Calculate Accuracy
+    accuracy_nb <-
+      sum(diag(confusionMatrix) / sum(diag(rowSums(
+        confusionMatrix
+      ))))
+    
+    
+    
+    trial  = i
+    NB <- data.frame(TRIAL = trial ,
+                     Accuracy = accuracy_nb,
+                     Model = "NavieBayes")
+    acc <- rbind(acc, NB)
+  }
+  
+  return(acc)
+}
+                    
+
+NaiveBayesAccDF <- accuracyNBloop(25)
+meannb_acc = mean(NaiveBayesAccDF$Accuracy)
+
+```
+
+# To loop the accuracy for rpart model 25 times
+
+```{r}
+require(rpart)
+
+accuracyrpartloop <- function(repetition) {
+  acc <- data.frame(TRIAL = c(), Accuracy = c(), Model = c())
+  for (i in 1:repetition) {
+    seed <- as.numeric(paste0("123", i + 5))
+    set.seed = seed
+    
+    sample = sample.split(Genes_merged$Autism, SplitRatio = 0.75)
+    train = subset(Genes_merged, sample == T)
+    test = subset(Genes_merged, sample == F)
+    test$Autism <- as.factor(test$Autism)
+    train$Autism <- as.factor(train$Autism)
+
+RFmodel2 <- rpart(Autism ~ X35 + X135 + Symbol, data = train, method = "class")
+RF_prediction2 <- predict(RFmodel, test, type = "class")
+
+#Confusion Matrix
+confusionMatrix <- table(RF_prediction2,
+                             test$Autism,
+                             dnn = c("Prediction", "Actual"))
+    # Calculate Accuracy
+    accuracy_rpart <-
+      sum(diag(confusionMatrix) / sum(diag(rowSums(
+        confusionMatrix
+      ))))
+    
+trial  = i
+    Rpart <- data.frame(TRIAL = trial ,
+                     Accuracy = accuracy_rpart,
+                     Model = "Rpart")
+    acc <- rbind(acc, Rpart)
+  }
+  
+  return(acc)
+}
+                    
+
+RpartAccDF <- accuracyrpartloop(25)
+meanrpart_acc = mean(RpartAccDF$Accuracy)
+
+
+```
+
+
+# To loop the accuracy for logistic regression model 25 times
+
+```{r}
+# To start the h2o java machine
+library(h2o)
+h2o.init()
+SPLIT_RATIO = 0.75
+
+loclah2o <- h2o.init()
+
+#Import Data
+Genes_merged$Autism <- as.integer(Genes_merged$Autism)
+h2o_Genes_merged <- as.h2o(Genes_merged)
+
+accuracyglmloop <- function(repetition) {
+  acc <- data.frame(TRIAL = c(), Accuracy = c(), Model = c())
+  for (i in 1:repetition) {
+    seed <- as.numeric(paste0("123", i + 5))
+    set.seed = seed
+
+    
+    h2oSplit <- h2o.splitFrame(data = h2o_Genes_merged, ratios = SPLIT_RATIO)
+h2otrain <- h2oSplit[[1]]
+h2otest <- h2oSplit[[2]]
+
+#GLM: Build Model
+model_id = "glm"
+glmModel <- h2o.glm(
+  y = "Autism",
+  x = c("X35", "X135"),
+  training_frame = h2otrain,
+  validation_frame = h2otest
+)
+
+
+# Predict
+predictedasd <- h2o.predict(glmModel, newdata = h2otest)
+
+
+
+#Confusion Matrix
+confusionMatrix <- table(as.vector(predictedasd$predict),
+                             as.vector(h2otest$Autism),
+                             dnn = c("Prediction", "Actual"))
+    # Calculate Accuracy
+    accuracy_glm <-
+      sum(diag(confusionMatrix) / sum(diag(rowSums(
+        confusionMatrix
+      ))))
+    
+trial  = i
+    Glm <- data.frame(TRIAL = trial ,
+                     Accuracy = accuracy_glm,
+                     Model = "Glm (h2o)")
+    acc <- rbind(acc, Glm)
+  }
+  
+  return(acc)
+}
+                    
+
+GlmAccDF <- accuracyglmloop(25)
+meanglm_acc_h2o = mean(GlmAccDF$Accuracy)
+
+
+```
+
+# To loop the accuracy for SVM 25 times
+
+```{r}
+require(kernlab)
+
+accuracyksvmloop <- function(repetition) {
+  acc <- data.frame(TRIAL = c(), Accuracy = c(), Model = c())
+  for (i in 1:repetition) {
+    seed <- as.numeric(paste0("123", i + 5))
+    set.seed = seed
+    
+    sample = sample.split(Genes_merged$Autism, SplitRatio = 0.75)
+    train = subset(Genes_merged, sample == T)
+    test = subset(Genes_merged, sample == F)
+    test$Autism <- as.factor(test$Autism)
+    train$Autism <- as.factor(train$Autism)
+
+modelSVM2 <- ksvm(Autism ~ X35 + X135,
+                 data = train,
+                 kernel = "rbfdot")
+
+#predict
+
+predsvm2 <- predict(modelSVM, test)
+
+#Confusion Matrix
+confusionMatrix <- table(predsvm2,
+                             test$Autism,
+                             dnn = c("Prediction", "Actual"))
+    # Calculate Accuracy
+    accuracy_svm <-
+      sum(diag(confusionMatrix) / sum(diag(rowSums(
+        confusionMatrix
+      ))))
+    
+trial  = i
+    SVM <- data.frame(TRIAL = trial ,
+                     Accuracy = accuracy_svm,
+                     Model = "SVM")
+    acc <- rbind(acc, SVM)
+  }
+  
+  return(acc)
+}
+                    
+
+SVMAccDF <- accuracyksvmloop(25)
+meansvm_acc = mean(SVMAccDF$Accuracy)
+
+
+
+```
+
+# To loop the accuracy for NNET 25 times
+
+```{r}
+# To start the h2o java machine
+library(h2o)
+h2o.init()
+SPLIT_RATIO = 0.75
+
+loclah2o <- h2o.init()
+
+#Import Data
+Genes_merged$Autism <- as.integer(Genes_merged$Autism)
+h2o_Genes_merged <- as.h2o(Genes_merged[,c(
+  "X35","X135","Autism")])
+
+accuracynnetloop <- function(repetition) {
+  acc <- data.frame(TRIAL = c(), Accuracy = c(), Model = c())
+  for (i in 1:repetition) {
+    seed <- as.numeric(paste0("123", i + 5))
+    set.seed = seed
+    
+    
+    h2oSplit <- h2o.splitFrame(data = h2o_Genes_merged, ratios = SPLIT_RATIO)
+h2otrain <- h2oSplit[[1]]
+h2otest <- h2oSplit[[2]] 
+
+    
+    h2oDL <- h2o.deeplearning(x = colnames(h2otrain),
+                          y = c("Autism"),
+                          training_frame = h2otrain,
+                          hidden = c(16,16,16),
+                          epochs = 100,
+                          nfolds = 3)
+
+h2oDL@model$scoring_history
+
+pred <- h2o.predict(h2oDL, h2otest)
+#Confusion Matrix
+confusionMatrix = table(as.vector(pred$predict), as.vector(h2otest$Autism),
+                             dnn = c("Prediction", "Actual"))
+
+  # Calculate Accuracy
+    accuracy_nnet <-
+      sum(diag(confusionMatrix) / sum(diag(rowSums(
+        confusionMatrix
+      ))))
+    
+trial  = i
+    NNET <- data.frame(TRIAL = trial ,
+                     Accuracy = accuracy_nnet,
+                     Model = "NNET")
+    acc <- rbind(acc, NNET)
+  }
+  
+  return(acc)
+}
+                    
+
+NNETAccDF <- accuracynnetloop(25)
+meannnet_acc = mean(NNETAccDF$Accuracy)
+
+
+
+```
+
+# To loop the accuracy for RandomForest 25 times
+
+```{r}
+set.seed(123)
+require(randomForest)
+
+accuracyrandomforestloop <- function(repetition) {
+  acc <- data.frame(TRIAL = c(), Accuracy = c(), Model = c())
+  for (i in 1:repetition) {
+    seed <- as.numeric(paste0("123", i + 5))
+    set.seed = seed
+    
+    sample = sample.split(Genes_merged$Autism, SplitRatio = 0.75)
+    train = subset(Genes_merged, sample == T)
+    test = subset(Genes_merged, sample == F)
+    test$Autism <- as.factor(test$Autism)
+    train$Autism <- as.factor(train$Autism)
+
+forest <- randomForest(Autism ~ X35 + X135, data = train)
+print(forest)
+
+predictionforest <- predict(forest, test, type = "class")
+
+#Confusion Matrix
+confusionMatrix <- table(predictionforest,
+                             test$Autism,
+                             dnn = c("Prediction", "Actual"))
+    # Calculate Accuracy
+    accuracy_rforest <-
+      sum(diag(confusionMatrix) / sum(diag(rowSums(
+        confusionMatrix
+      ))))
+    
+trial  = i
+    RandomForest <- data.frame(TRIAL = trial ,
+                     Accuracy = accuracy_rforest,
+                     Model = "RandomForest")
+    acc <- rbind(acc, RandomForest)
+  }
+  
+  return(acc)
+}
+                    
+
+RandomForestAccDF <- accuracyrandomforestloop(25)
+meanrandomforest_acc = mean(RandomForestAccDF$Accuracy)
+
+
+```
+
+# To loop the accuracy for Logistic regression 25 times (without h2o)
+
+```{r}
+accuracyglmloop_regular <- function(repetition) {
+  acc <- data.frame(TRIAL = c(), Accuracy = c(), Model = c())
+  for (i in 1:repetition) {
+    seed <- as.numeric(paste0("123", i + 5))
+    set.seed = seed
+
+    
+    sample = sample.split(Genes_merged$Autism, SplitRatio = 0.75)
+    train = subset(Genes_merged, sample == T)
+    test = subset(Genes_merged, sample == F)
+    test$Autism <- as.factor(test$Autism)
+    train$Autism <- as.factor(train$Autism)
+
+
+#GLM: Build Model
+glmModel <- glm(data= train,Autism ~ X35+ X135, family="binomial")
+predGLM <- predict(glmModel, newdata = test, type = "response")
+predGLMClass<-ifelse(predGLM<0.5,"0","1")
+predGLMClass<-as.factor(predGLMClass)
+#Confusion Matrix
+confusionMatrix<-table(predGLMClass, test$Autism)
+    # Calculate Accuracy
+    accuracy_glm <-  sum(diag(confusionMatrix)/sum(diag(rowSums(confusionMatrix))))
+    
+trial  = i
+    Glm <- data.frame(TRIAL = trial ,
+                     Accuracy = accuracy_glm,
+                     Model = "Glm")
+    acc <- rbind(acc, Glm)
+  }
+  
+  return(acc)
+}
+                    
+
+GlmAccDF_regular <- accuracyglmloop_regular(25)
+meanglm_acc_regular = mean(GlmAccDF_regular$Accuracy)
+```
+#
+# To stack all the mean accuracies obtained from the model above and present as a bar plot for easy visualization.
+#
+```{r}
+# This chunk creates a dataset with all the mean accuracies obtained from iterating for 25 times for each model which can be later used for visualizing.
+accuracy_models_25_iterations = data.frame(
+  Model = c("NaiveBayes", "RandomForest", "SVM", "NNET", "Logistic Regression (h2o)", "Rpart", "Logistic Regression"),
+  Accuracy = c(
+    meannb_acc,
+    meanrandomforest_acc,
+    meansvm_acc,
+    meannnet_acc,
+    meanglm_acc_h2o,
+    meanrpart_acc,
+    meanglm_acc_regular
+  )
+)
+
+
+# To use the dataset created in line 1190 to compare the mean accuracies side by side after 25 iterations.
+ggplot(accuracy_models_25_iterations, aes(x = Model, y = Accuracy, fill = Model)) +
+  geom_bar(stat = "identity", position = "dodge2") +
+  geom_text(aes(label = round(Accuracy * 100, digits = 2)),
+            size = 3,
+            hjust = 0.5,
+            vjust = -0.5) + labs(title = "Accuracy vs Model", x = "Model", y = "Accuracy") + theme_few() + scale_fill_gdocs()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+```
+
+# To plot the lines for each model with accuracies with each trial out of the 25 trials.
+
+```{r}
+# This chunk creates a dataset with all 25 different accuracues from each model before getting the mean so that a line plot can be generated for each trial.
+
+AccDF = rbind(NaiveBayesAccDF, RpartAccDF, GlmAccDF, SVMAccDF, RandomForestAccDF,NNETAccDF,GlmAccDF_regular)
+
+# The plot mentioned in line 1220
+
+ggplot(AccDF, aes(TRIAL, Accuracy*100, col = Model))+
+  geom_line() +
+  geom_point()+
+  labs(title = "Accuracy vs Each Model",subtitle = "Each Model Accuracy when ran 25 times with a different set.seed", x = "Trials", y = "Accuracy")+theme_few() + scale_color_gdocs()
+
+```
+
+
+# To perform anova on a single dataset containing all the accuracies with their corresponding models.
+
+```{r}
+# Analysis of Variance (Anova) analyzes the differences among group means for all the accuracies stored.
+
+anova = aov(AccDF$Accuracy ~ AccDF$Model)
+summary(anova)
+
+```
+
+# To perform a tukey test on the predictions passed through anova
+
+```{r}
+# Next a tukey test analyzes the honest significance among all the models to back up the visualization. As can be seen from the above graph that SVM delivers the highest accuracy, but to back this statistically all combination of models generated with SVM must be less than the significance level.
+
+TukeyHSD(anova)
+
+```
+
+# The following chunk pushes all the datasets to a local hosted MySQL database which could be later imported in to PowerBi to create interactive visualization dashboards.
+
+```{r}
+
+#require(devtools)
+library(devtools)
+#install_github("martinkabe/RSQLS")
+library(RSQLS)
+
+# To initiate the connection between R and MySQL
+# cs <- set_connString("DESKTOP-ASSR67S\\SQLEXPRESS", "SSQ")
+# push_data(cs,
+#           Genes_merged,
+#           "Genes_merged",
+#           append = T,
+#           showprogress = TRUE)
+
+# push_data(cs,
+#           delta_top_20,
+#           "Delta_top_20",
+#           append = TRUE,
+#           showprogress = TRUE)
+
+# push_data(cs,
+#           Diff_AVG_ASD,
+#           "D_AVG_ASD",
+#           append = TRUE,
+#           showprogress = TRUE)
+# 
+# push_data(cs,
+#           Diff_AVG_WASD,
+#           "D_AVG_WASD",
+#           append = TRUE,
+#           showprogress = TRUE)
+
+# To show what was pushed to the MySQL server by pulling it back.
+# df_test <-
+#   pull_data(cs, "SELECT * FROM dbo.SSQ", showprogress = TRUE)
+```
+
